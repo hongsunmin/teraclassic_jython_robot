@@ -203,13 +203,19 @@ class GameRobot:
             start2 = datetime.datetime.combine(today, datetime.time(hour=0, minute=0, second=0))
             end2 = datetime.datetime.combine(today, datetime.time(hour=8, minute=0, second=0))
             
+            arena_start = datetime.datetime.combine(today, datetime.time(hour=12, minute=00, second=0))
+            arena_end = datetime.datetime.combine(today, datetime.time(hour=18, minute=30, second=59))
+            
             if True or now >= start1 and now <= end1 or now >= start2 and now <= end2:
                 logging.info('play time!!!')
                 if first:
                     self.readyMission(first)
                 
                 try:
-                    self._doMission(first)
+                    if now >= arena_start and now <= arena_end:
+                        self._do3vs3Arena()
+                    else:
+                        self._doMission(first)
                 except MissmatchException:
                     self._killApp()
                     first = True
@@ -217,7 +223,7 @@ class GameRobot:
                 
                 if first == True:
                     first = False
-                sleep(10)
+                sleep(5)
             else:
                 logging.info('break time!!! kill app.')
                 self._killApp()
@@ -283,7 +289,7 @@ class GameRobot:
             # Click X Btn, Close Dialog.
             logging.info('Check auto activation process.')
             self.touch(1255, 75)
-            self._clickAutoButton(missionRes)
+            self._clickAutoButton()
             self.touch(242, 125)
             
         # Check SOTANG Finished
@@ -295,16 +301,31 @@ class GameRobot:
             self._missionStopwatch.start()
     
     
-    def do3vs3Arena(self):
-        while True:
-            self._do3vs3Arena()
-            sleep(5)
-    
-    
     def _do3vs3Arena(self):
-#         self.touch(1295, 28)
-#         self.touch(248, 95)
-#         self.touch(680, 220)
+        # check Arena Menu
+        pixel1 = self.getScreenRawPixel(44, 33)
+        pixel2 = self.getScreenRawPixel(45, 230, False)
+        if pixel1 != (-1, 255, 255, 255) and not self._betweenTuple(pixel2, (-1, 239, 240, 241), (-1, 239, 240, 241)):
+            checkCount = 0
+            while True:
+                # Open check Arena Menu
+                logging.info('Arena Menu closed. OPEN!!. pixel1 %s pixel2 %s' % (pixel1, pixel2))
+                self.touch(1295, 28)
+                self.touch(248, 95)
+                self.touch(680, 220)
+                self.touch(1220, 660)
+                
+                checkCount += 1
+                pixel1 = self.getScreenRawPixel(44, 33)
+                pixel2 = self.getScreenRawPixel(45, 230, False)
+                if pixel1 == (-1, 255, 255, 255) and self._betweenTuple(pixel2, (-1, 239, 240, 241), (-1, 239, 240, 241)):
+                    break
+                elif checkCount >= 3:
+                    raise MissmatchException
+                
+                sleep(3)
+        
+        
         if self._betweenTuple(self.getScreenRawPixel(1017, 635), (-1, 55, 100, 168), (-1, 56, 102, 170)):
             self.touch(1220, 660)
         
@@ -364,8 +385,6 @@ if __name__ == "__main__":
     robot = GameRobot()
     robot.setPackageName('com.kakaogames.tera')
     robot.setActivityName('com.meteoritestudio.prom1.MainActivity')
-#     robot.doMission()
-    robot.do3vs3Arena()
+    robot.doMission()
 #     robot.saveFullscreen()
 #     robot.getScreenRawPixel(346, 180)
-#     robot.getScreenRawPixel(908, 123)
